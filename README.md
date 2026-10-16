@@ -4,13 +4,23 @@ Tiện ích Chrome hỗ trợ thao tác **chọn căn trong Quản lý hotspot �
 
 [Xem giao diện minh họa](docs/ping-location-preview.png) · [Kết quả kiểm chứng và giới hạn OCR](docs/verification.md).
 
+## Cập nhật lên 0.2.0 — sửa quét OCR quá lâu
+
+Nếu đã cài bản trước: mở `chrome://extensions`, bấm **Tải lại** ở tiện ích Ping Location, rồi quay lại trang VHub và nhấn **F5**. Cần tải lại cả tiện ích và trang để thay mã đang chạy. Dịch vụ Python cũng cần khởi động lại sau khi thay mã; bản mới trả `version: 2` và `jobsApi: 1` trong `/health`. Trong phiên sửa này, dịch vụ cũ bị kẹt đã được thay bằng dịch vụ mới và mô hình đã được nạp.
+
+Bấm **Kiểm tra màn hình** để xem đúng ảnh mà công cụ chụp. Bước này không cần mở danh sách căn và không phụ thuộc dịch vụ OCR. Nếu ảnh đúng, dùng **Khoanh vùng bản đồ** kéo quanh một dãy có chữ rõ, giữ **Góc chữ → Tự động (nhanh)** rồi quét. Nếu ảnh hiện màn hình đang tải, chờ bản đồ tải xong trước khi nhận diện. Danh sách **Chờ gắn** chỉ cần để ghép mã và thực hiện gắn, không còn là điều kiện để đọc ảnh.
+
+Bản mới hiển thị tiến độ nạp mô hình, tìm nhãn và đọc từng nhóm chữ. **Dừng** hủy yêu cầu đang chờ và gửi lệnh hủy tới dịch vụ; nhóm suy luận đang chạy cần kết thúc trước khi backend nhận lượt khác. Quét lại cùng ảnh/tùy chọn có thể dùng kết quả cache cục bộ. **Quét kỹ nhiều hướng** dành cho vùng nhỏ có chữ nhiều hướng và chậm hơn chế độ tự động.
+
+[Chi tiết lỗi đã sửa, kết quả đo và giới hạn còn lại](docs/ocr-update-2026-10-16.md).
+
 ## Cài và chạy
 
 1. Chạy `start.cmd`, giữ cửa sổ đó mở. Máy hiện tại đã có thư viện OCR và mô hình trong dự án bên cạnh; dịch vụ tự tìm mô hình cục bộ. Bấm **Kiểm tra OCR** trong tiện ích để xem mô hình đã sẵn sàng chưa.
 2. Trong Chrome, mở `chrome://extensions`, bật **Developer mode / Chế độ nhà phát triển** → **Load unpacked / Tải tiện ích đã giải nén** → chọn **`D:\vhs-project\ping-location\extension`**.
 3. Mở [trang dự án VHub](https://vhub.com.vn/du-an/vinhomes-green-paradise/mat-bang-quy-can), đăng nhập như bình thường. Mở **Quản lý hotspot → Sản phẩm → Chờ gắn**, rồi bấm biểu tượng tiện ích **Ping Location** trên thanh Chrome.
 4. Bấm **Đọc danh sách căn**. Tiện ích tìm bảng quản lý, từng hàng và nút **Gắn**. Nếu chưa tìm đúng, mở **Kết nối với trang**, dùng nút **⌖** để chọn thành phần trên trang rồi **Lưu cấu hình trang**. Có thể sửa trực tiếp bộ chọn CSS. Esc hủy chọn.
-5. Phóng to bản đồ để đọc rõ mã, bấm **Quét mã bằng OCR**. Các điểm dự kiến hiện trên bản đồ: xanh là sẵn sàng, cam là cần duyệt. Kiểm tra kế hoạch, sửa bằng **Chấm lại** nếu cần. Sau đó bấm **Bắt đầu tự động**.
+5. Bấm **Kiểm tra màn hình** để xem ảnh chụp, phóng to bản đồ để đọc rõ mã và **Khoanh vùng bản đồ** quanh một dãy cần xử lý. Bấm **Quét mã bằng OCR** với góc **Tự động (nhanh)**. Các điểm dự kiến hiện trên bản đồ: xanh là sẵn sàng, cam là cần duyệt. Kiểm tra kế hoạch, sửa bằng **Chấm lại** nếu cần. Sau đó bấm **Bắt đầu tự động**.
 
 Khi đọc danh sách, tiện ích kết nối điều khiển trước khi lấy tọa độ. Chrome hiện thanh báo do tiện ích dùng quyền `debugger` để bấm thật vào bản đồ canvas/WebGL; công cụ đợi vùng hiển thị ổn định rồi mới nhận diện. Trong lúc chạy, giữ tab bản đồ ở phía trước. **Dừng**, **Esc**, hoặc **Ctrl+Shift+X** dừng phiên. Sau khi dừng, kiểm tra căn vừa thao tác vì thao tác đã gửi có thể đang được trang lưu.
 
@@ -43,7 +53,7 @@ Chạy `demo.cmd`, mở **http://127.0.0.1:8767** trong Chrome rồi bật tiệ
 
 - Ảnh được gửi từ tiện ích tới dịch vụ **`127.0.0.1:8766` trên máy này**. Dịch vụ OCR không gửi ảnh tới dịch vụ AI bên ngoài và không ghi ảnh nhận vào ra đĩa.
 - Bộ chọn được lưu trong bộ nhớ tiện ích theo tên miền và đường dẫn trang; không thu thập mật khẩu hay cookie đăng nhập.
-- **Xuất phiên làm việc** tải mã, tọa độ và nhật ký JSON; **Xuất nhật ký** chỉ tải lịch sử thao tác. Nhập JSON/CSV hỗ trợ cột `code,x,y,confidence`; ví dụ [coordinates.csv](examples/coordinates.csv). Tọa độ là pixel CSS của vùng hiển thị trình duyệt, không phải tọa độ bản đồ toàn cục.
+- **Xuất phiên làm việc** tải mã, tọa độ và nhật ký JSON; **Xuất nhật ký** tải lịch sử, kích thước màn hình, vùng bản đồ và chẩn đoán kết nối để kiểm tra lỗi. Nhập JSON/CSV hỗ trợ cột `code,x,y,confidence`; ví dụ [coordinates.csv](examples/coordinates.csv). Tọa độ là pixel CSS của vùng hiển thị trình duyệt, không phải tọa độ bản đồ toàn cục.
 - Khi đóng/tải lại trang, danh sách đang nhận diện cần quét hoặc nhập lại; cấu hình bộ chọn vẫn được giữ. Nhập lại phiên làm việc vẫn yêu cầu duyệt vị trí trong vùng nhìn mới.
 
 ## Cài trên máy khác
@@ -69,6 +79,11 @@ Kiểm tra cú pháp JavaScript, đối chiếu mã/tọa độ/nội suy/CSV, h
 ```powershell
 node tests/browser_smoke.cjs
 node tests/extension_smoke.cjs
+node tests/adapter_map.cjs
+node tests/recognition_ui.cjs
+node tests/extension_ocr_smoke.cjs
 ```
 
 Các bài trình duyệt dùng gói Playwright Core đã có trong workspace; máy khác có thể truyền `--playwright-path <thư-mục-package>` và `--chrome-path <chrome.exe>`. Không tự tải gói hay trình duyệt. `browser_smoke` kiểm tra 24 lô mô phỏng, phân trang, từ chối click sai, dấu hiệu lưu mới theo đúng mã và 5 lần gắn qua giao diện với API Chrome giả lập. `extension_smoke` tải tiện ích MV3 thật trong Chromium bằng hồ sơ tạm, kiểm tra toàn bộ luồng gắn 5 căn với quyền `activeTab`, chụp tab và lệnh chuột thật của `chrome.debugger`; dùng Chromium hỗ trợ nạp tiện ích bằng dòng lệnh.
+
+`extension_ocr_smoke` cần dịch vụ OCR đang chạy tại `127.0.0.1:8766`; bài này kiểm tra cả tiện ích và OCR thật bằng mã rõ trên canvas giả, không thay thế kiểm chứng độ chính xác trên bản đồ VHub. `recognition_ui` kiểm tra ảnh xem trước, thao tác khoanh vùng, tiến độ và hủy; `adapter_map` kiểm tra bản đồ canvas/SVG khi không có bảng quản lý.
