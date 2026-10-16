@@ -1,0 +1,95 @@
+{
+  "acceptedSeconds": 0.0185,
+  "completionSeconds": 8.843,
+  "state": "completed",
+  "stages": [
+    "loading-model",
+    "recognizing",
+    "completed"
+  ],
+  "result": {
+    "width": 400,
+    "height": 100,
+    "detections": [
+      {
+        "code": "VN48-123",
+        "raw": "VN48-123",
+        "confidence": 0.999918,
+        "x": 93.0,
+        "y": 38.0,
+        "box": [
+          [
+            15.0,
+            17.0
+          ],
+          [
+            171.0,
+            17.0
+          ],
+          [
+            171.0,
+            59.0
+          ],
+          [
+            15.0,
+            59.0
+          ]
+        ],
+        "angle": 0.0
+      }
+    ],
+    "warnings": [
+      "Quick scan limits image processing size; zoom the live map for small labels or use thorough scanning."
+    ],
+    "metrics": {
+      "seconds": 8.663,
+      "profile": "quick",
+      "angles": [
+        0.0
+      ],
+      "tiles": 1,
+      "detections": 1
+    }
+  },
+  "cacheHit": true,
+  "cacheResponseSeconds": 0.0039,
+  "health": {
+    "ok": true,
+    "service": "ping-location-ocr",
+    "version": 2,
+    "ocrReady": true,
+    "modelsAvailable": true,
+    "dependencies": {
+      "easyocr": true,
+      "PIL": true,
+      "numpy": true,
+      "cv2": true
+    },
+    "modelDirectory": "D:\\vhs-project\\plan-sync-review\\output\\models\\easyocr",
+    "missingModels": [],
+    "loaded": true,
+    "loadError": null,
+    "downloadEnabled": false,
+    "workerWarm": true,
+    "busy": false,
+    "lastScan": {
+      "seconds": 8.663,
+      "profile": "quick",
+      "angles": [
+        0.0
+      ],
+      "tiles": 1,
+      "detections": 1
+    },
+    "jobsApi": 1,
+    "activeJob": null,
+    "cache": {
+      "entries": 1,
+      "hits": 1,
+      "ttlSeconds": 600,
+      "maxEntries": 8,
+      "resultBytes": 391,
+      "maxResultBytes": 67108864
+    }
+  }
+}

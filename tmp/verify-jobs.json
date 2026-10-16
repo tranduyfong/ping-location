@@ -1,0 +1,11 @@
+{
+  "serviceVersion": 2,
+  "elapsedSeconds": 9.468,
+  "codes": [
+    "VN48-123",
+    "VX-002"
+  ],
+  "cacheReused": true,
+  "jobId": "d564d26b290b46a594b161eb86799325",
+  "scope": "Readable synthetic labels; not a benchmark of small map labels."
+}

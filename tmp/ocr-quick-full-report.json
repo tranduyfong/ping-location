@@ -1,0 +1,75 @@
+{
+  "imageSize": [
+    1908,
+    986
+  ],
+  "seconds": 86.284,
+  "detections": [
+    {
+      "code": "VN74-01",
+      "raw": "VN74-01",
+      "confidence": 0.950902,
+      "x": 1540.386,
+      "y": 442.027,
+      "box": [
+        [
+          1512.058,
+          431.887
+        ],
+        [
+          1568.664,
+          431.069
+        ],
+        [
+          1568.715,
+          452.167
+        ],
+        [
+          1512.108,
+          452.986
+        ]
+      ],
+      "angle": 330.0
+    },
+    {
+      "code": "VNB3-18",
+      "raw": "VNB3-18",
+      "confidence": 0.747515,
+      "x": 1539.647,
+      "y": 498.746,
+      "box": [
+        [
+          1512.309,
+          488.323
+        ],
+        [
+          1567.152,
+          488.467
+        ],
+        [
+          1567.234,
+          509.602
+        ],
+        [
+          1511.891,
+          508.592
+        ]
+      ],
+      "angle": 330.0
+    }
+  ],
+  "warnings": [
+    "Text orientation was estimated automatically; use explicit angles or thorough scanning if labels are missed.",
+    "Quick scan limits image processing size; zoom the live map for small labels or use thorough scanning."
+  ],
+  "metrics": {
+    "seconds": 85.974,
+    "profile": "quick",
+    "angles": [
+      330.0,
+      50.0
+    ],
+    "tiles": 1,
+    "detections": 2
+  }
+}

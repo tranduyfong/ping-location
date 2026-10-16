@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Ping Location — Trợ lý gắn căn",
+  "version": "0.2.0",
+  "description": "Đọc mã căn cục bộ, học vị trí mẫu và hỗ trợ gắn hotspot trên tab đang mở.",
+  "minimum_chrome_version": "118",
+  "permissions": ["activeTab", "scripting", "storage", "debugger"],
+  "host_permissions": ["http://127.0.0.1:8766/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_title": "Mở Ping Location"},
+  "commands": {"stop": {"suggested_key": {"default": "Ctrl+Shift+X"}, "description": "Dừng gắn vị trí"}}
+}

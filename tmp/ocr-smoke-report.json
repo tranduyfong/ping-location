@@ -1,0 +1,55 @@
+{
+  "input": "b077711d-dd33-4885-be92-76218ef816fa.jpg",
+  "sourceSize": [
+    1908,
+    986
+  ],
+  "crop": [
+    930,
+    285,
+    1180,
+    590
+  ],
+  "angles": [
+    330.0
+  ],
+  "scale": 3.0,
+  "minConfidence": 0.3,
+  "elapsedSecondsIncludingColdLoad": 14.729,
+  "modelDirectory": "D:\\vhs-project\\plan-sync-review\\output\\models\\easyocr",
+  "downloadEnabled": false,
+  "expectedCodes": [
+    "VN50-01",
+    "VN50-02",
+    "VN50-03",
+    "VN50-04",
+    "VN50-05",
+    "VN50-06",
+    "VN50-07",
+    "VN50-08",
+    "VN50-09"
+  ],
+  "detectedCodes": [],
+  "verifiedExpectedCodes": [],
+  "missingExpectedCodes": [
+    "VN50-01",
+    "VN50-02",
+    "VN50-03",
+    "VN50-04",
+    "VN50-05",
+    "VN50-06",
+    "VN50-07",
+    "VN50-08",
+    "VN50-09"
+  ],
+  "unexpectedCodes": [],
+  "verifiedCount": 0,
+  "expectedCount": 9,
+  "result": {
+    "width": 250,
+    "height": 305,
+    "detections": [],
+    "warnings": []
+  },
+  "limitation": "A single screenshot crop smoke test is not a general accuracy estimate. Small JPEG labels need a higher-resolution capture or human teaching."
+}

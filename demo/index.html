@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ping Location — bản đồ thử nghiệm</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-icon">⌖</span><span>Ping Location<small>KHÔNG GIAN THỬ NGHIỆM</small></span></a>
+    <div class="project"><span class="project-dot"></span>Khu đô thị Vịnh Ngọc<span class="demo-badge">Dữ liệu mô phỏng</span></div>
+    <button class="text-button" id="reset-demo">Làm lại dữ liệu</button>
+  </header>
+  <main class="workspace">
+    <section class="map-workspace" aria-label="Mặt bằng căn hộ thử nghiệm">
+      <div class="map-heading"><span class="eyebrow">MẶT BẰNG QUỸ CĂN</span><h1>Mỗi căn, đúng vị trí.</h1><p>Bản đồ mô phỏng có nhiều màu và hướng chữ.</p></div>
+      <canvas id="demo-map" data-ping-map aria-label="Bản đồ các căn, chọn Gắn rồi bấm vào đúng mã căn"></canvas>
+      <div class="map-tools"><button id="zoom-in" title="Phóng to" aria-label="Phóng to">+</button><button id="zoom-out" title="Thu nhỏ" aria-label="Thu nhỏ">−</button><button id="fit-map" title="Vừa màn hình" aria-label="Vừa màn hình">⌖</button></div>
+      <div class="map-legend"><span><i class="legend-color violet"></i>Liền kề</span><span><i class="legend-color yellow"></i>Thương mại</span><span><i class="legend-color pink"></i>Biệt thự</span><span><i class="legend-color assigned"></i>Đã gắn</span></div>
+      <div class="map-hint" id="map-hint">Cuộn để phóng to · Kéo để di chuyển bản đồ</div>
+      <div id="success-message" class="toast" role="status" data-ping-success hidden></div>
+    </section>
+    <aside class="hotspot-panel" data-ping-panel data-pending-total="24">
+      <div class="panel-head"><div><span class="eyebrow">THAO TÁC TRÊN BẢN ĐỒ</span><h2>Quản lý hotspot</h2></div><span class="panel-icon">⌖</span></div>
+      <p class="panel-description">Chọn căn cần gắn, sau đó bấm đúng vị trí trên bản đồ.</p>
+      <div class="tabs" role="tablist"><button id="pending-tab" role="tab" aria-selected="true" data-ping-tab data-active="true">Chờ gắn <span id="pending-badge">24</span></button><button id="assigned-tab" role="tab" aria-selected="false" data-ping-tab data-active="false">Đã gắn <span id="assigned-badge">0</span></button></div>
+      <label class="search-box"><span>⌕</span><input id="search-code" placeholder="Tìm mã căn, ví dụ VX-02" autocomplete="off" aria-label="Tìm mã căn"></label>
+      <div class="list-title"><span>MÃ CĂN</span><span>THAO TÁC</span></div>
+      <div id="hotspot-list" class="hotspot-list"></div>
+      <div class="pagination"><span id="page-info"></span><div><button id="prev-page" aria-label="Trang trước">Trước</button><button id="next-page" aria-label="Trang sau">Sau</button></div></div>
+      <div class="session-note"><span class="note-icon">i</span><div><strong>Thử quy trình tự động</strong><p>Mở tiện ích Ping Location trên trang này. Không có dữ liệu thật nào được thay đổi.</p></div></div>
+      <div class="panel-footer"><span class="live-dot"></span>Thay đổi chỉ lưu trong phiên trình duyệt</div>
+    </aside>
+  </main>
+</body>
+</html>
