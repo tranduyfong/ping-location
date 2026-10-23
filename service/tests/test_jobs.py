@@ -132,6 +132,38 @@ class AdaptiveScanTests(unittest.TestCase):
         self.assertEqual(max(right for left, top, right, bottom in tiles), 1908)
         self.assertEqual(max(bottom for left, top, right, bottom in tiles), 986)
 
+    def test_balanced_preserves_tiles_and_scale_for_large_screenshots(self):
+        from unittest.mock import patch
+        import numpy as np
+        engine = OcrEngine()
+        engine._reader = object()
+        output = io.BytesIO()
+        Image.new('RGB', (1200, 800), 'white').save(output, 'PNG')
+        body = {'image': 'data:image/png;base64,' + base64.b64encode(output.getvalue()).decode(),
+                'profile': 'balanced', 'angles': [0]}
+        calls = []
+        def read(reader, bgr, canvas_size, *args):
+            calls.append((bgr.shape[:2], canvas_size))
+            return []
+        with patch('service.ocr.read_bounded', side_effect=read):
+            result = engine.recognize(body)
+        self.assertEqual(result['metrics']['tiles'], 2)
+        self.assertEqual(calls, [((1200, 1350), 1600), ((1200, 1350), 1600)])
+
+    def test_quick_keeps_horizontal_fallback_for_mixed_direction_maps(self):
+        from unittest.mock import patch
+        engine = OcrEngine()
+        class Reader:
+            def readtext(self, image, **kwargs):
+                return []
+        engine._reader = Reader()
+        with patch("service.ocr.adaptive_angles", return_value=[320.0, 45.0]):
+            result = engine.recognize(payload())
+        self.assertEqual(result["metrics"]["angles"], [0.0, 320.0])
+        with patch("service.ocr.adaptive_angles", return_value=[0.0, 90.0]):
+            result = engine.recognize(payload())
+        self.assertEqual(result["metrics"]["angles"], [0.0])
+
     def test_cancel_checked_between_passes(self):
         engine = OcrEngine()
         cancel = threading.Event()
@@ -162,6 +194,21 @@ class AdaptiveScanTests(unittest.TestCase):
         self.assertTrue(all(len(batch) == 1 for batch in calls))
         self.assertEqual([result[1] for result in results], ["VX-002", "VX-002"])
         self.assertEqual(results[0][2], 0.12)
+
+    def test_rotated_word_uses_quad_edges_instead_of_square_envelope(self):
+        import numpy as np
+        calls = []
+        diagonal = [[20, 10], [70, 60], [63, 67], [13, 17]]
+        class Reader:
+            def detect(self, image, **kwargs):
+                return [[]], [[diagonal]]
+            def recognize(self, image, **kwargs):
+                calls.append(kwargs["free_list"])
+                return [(diagonal, "KĐ7-93", 0.97)]
+        result = read_bounded(Reader(), np.zeros((100, 100, 3), dtype=np.uint8), 1280,
+                              lambda: None, lambda *args: None)
+        self.assertEqual(calls, [[diagonal]])
+        self.assertEqual(result[0][1], "KĐ7-93")
 
 
 if __name__ == "__main__":

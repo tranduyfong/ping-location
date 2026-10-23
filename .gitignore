@@ -1,1 +1,10 @@
 
+
+# Local runtimes, model weights and private map inputs.
+.venv/
+.models/
+data/
+tmp/
+__pycache__/
+*.py[cod]
+service/.data/

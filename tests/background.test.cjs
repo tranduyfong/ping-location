@@ -8,7 +8,13 @@ const { randomUUID } = require('node:crypto');
 const script = fs.readFileSync(require.resolve('../extension/background.js'), 'utf8');
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const turn = () => new Promise(resolve => setImmediate(resolve));
-async function until(condition) { for (let i = 0; i < 20 && !condition(); i++) await turn(); assert.ok(condition(), 'expected async operation to start'); }
+async function until(condition) {
+  // Give timers a chance to run: repeated setImmediate turns can finish before
+  // the zero-delay polling timer becomes due, especially on Windows.
+  const deadline = Date.now() + 2000;
+  while (!condition() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 1));
+  assert.ok(condition(), 'expected async operation to start');
+}
 
 function harness() {
   const listeners = {};

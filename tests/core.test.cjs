@@ -18,6 +18,30 @@ test('code matching preserves prefixes, dots and zero padding', () => {
   assert.deepEqual(result.map(item => item.status), ['ready', 'missing', 'ready', 'missing']);
 });
 
+test('Vietnamese codes retain diacritics and never alias D to Đ', () => {
+  for (const code of ['KĐ7-93', 'ĐLSH-173', 'ĐÔNG.ƯỚC-002', 'VM3-28']) {
+    assert.equal(core.normalizeCode(code.toLowerCase().normalize('NFD')), code);
+    assert.deepEqual(core.extractCodes(`${code} 153.00 m²`), [code]);
+  }
+  assert.deepEqual(core.extractCodes('KĐ7-93 KD7-93 ĐLSH-173 DLSH-173'), ['KĐ7-93', 'KD7-93', 'ĐLSH-173', 'DLSH-173']);
+  assert.deepEqual(core.extractCodes('KĐ7-93Á foo_ĐLSH-173'), []);
+  assert.deepEqual(plan(['KĐ7-93', 'KD7-93'], [point('KĐ7-93')]).map(item => item.status), ['ready', 'missing']);
+});
+
+test('OCR prefix suggestions keep the number and always require human review', () => {
+  const result = core.reviewOcrCodes([point('VI39-011'), point('YT39-017')], ['VT39-19']);
+  assert.deepEqual(result.map(p => [p.code, p.originalCode, p.requiresReview]),
+    [['VT39-011', 'VI39-011', true], ['VT39-017', 'YT39-017', true]]);
+  assert.equal(plan(['VT39-011'], result)[0].status, 'review');
+  assert.match(plan(['VT39-011'], result)[0].reason, /VI39-011/);
+  assert.equal(core.reviewOcrCodes([point('VI39-11')], ['VT39-19', 'VI39-19'])[0].code, 'VI39-11');
+  const ambiguous = core.reviewOcrCodes([point('VI39-11')], ['VT39-19', 'VI38-19'])[0];
+  assert.equal(ambiguous.code, 'VI39-11');
+  assert.equal(ambiguous.requiresReview, true);
+  assert.equal(core.reviewOcrCodes([point('VI39-11')], [])[0].code, 'VI39-11');
+  assert.equal(core.reviewOcrCodes([point('VI39-11', 100, 100, { source: 'manual' })], ['VT39-19'])[0].code, 'VI39-11');
+});
+
 test('near observations deduplicate by confidence but distant duplicates block automatic work', () => {
   const near = plan(['VX-02'], [point('VX-02', 100, 100, { confidence: 0.9 }), point('VX-02', 105, 104, { confidence: 0.98 })]);
   assert.equal(near[0].status, 'ready');

@@ -7,7 +7,7 @@
   'use strict';
 
   const DASHES = /[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g;
-  const CODE = /^([A-Z][A-Z0-9.]*)-(\d+)$/;
+  const CODE = /^(\p{L}[\p{L}0-9.]*)-([0-9]+)$/u;
   const READY_SOURCES = new Set(['dom', 'ocr', 'import', 'manual']);
 
   function normalizedText(value) {
@@ -23,7 +23,7 @@
     const value = normalizedText(text);
     const result = [];
     const seen = new Set();
-    const pattern = /(^|[^A-Z0-9._-])([A-Z][A-Z0-9.]*\s*-\s*\d+)(?![A-Z0-9._-])/g;
+    const pattern = /(^|[^\p{L}\p{M}\p{N}._-])(\p{L}[\p{L}0-9.]*\s*-\s*[0-9]+)(?![\p{L}\p{M}\p{N}._-])/gu;
     let match;
     while ((match = pattern.exec(value))) {
       const code = normalizeCode(match[2]);
@@ -36,6 +36,31 @@
   }
 
   function finite(value) { return typeof value === 'number' && Number.isFinite(value); }
+
+  function reviewOcrCodes(detections, rowCodes) {
+    const prefixes = [...new Set((rowCodes || []).map(row => normalizeCode(typeof row === 'string' ? row : row.code))
+      .filter(Boolean).map(code => code.slice(0, code.lastIndexOf('-'))))];
+    function distance(a, b) {
+      a = [...a]; b = [...b];
+      let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+      for (let i = 0; i < a.length; i++) {
+        const next = [i + 1];
+        for (let j = 0; j < b.length; j++) next.push(Math.min(next[j] + 1, previous[j + 1] + 1, previous[j] + (a[i] === b[j] ? 0 : 1)));
+        previous = next;
+      }
+      return previous[b.length];
+    }
+    return detections.map(detection => {
+      const code = normalizeCode(detection.originalCode || detection.code);
+      if (!code || !prefixes.length || detection.source !== 'ocr') return { ...detection };
+      const cut = code.lastIndexOf('-'), prefix = code.slice(0, cut);
+      if (prefixes.includes(prefix)) return { ...detection, code };
+      const candidates = prefixes.filter(known => distance(prefix, known) === 1);
+      if (candidates.length !== 1) return { ...detection, requiresReview: true, reviewReason: 'Tiền tố OCR chưa khớp danh sách căn.' };
+      return { ...detection, code: candidates[0] + code.slice(cut), originalCode: detection.originalCode || code,
+        requiresReview: true, reviewReason: 'Gợi ý tiền tố từ danh sách; cần đối chiếu mã trên bản đồ.' };
+    });
+  }
   function validRect(rect) {
     return rect && finite(rect.x) && finite(rect.y) && finite(rect.width) && finite(rect.height) && rect.width > 0 && rect.height > 0;
   }
@@ -92,7 +117,8 @@
       const code = normalizeCode(detection.code);
       if (!code) continue;
       const point = { code, x: detection.x, y: detection.y, confidence: detection.confidence,
-        source: detection.source, requiresReview: detection.requiresReview === true };
+        source: detection.source, requiresReview: detection.requiresReview === true,
+        originalCode: detection.originalCode, reviewReason: detection.reviewReason, raw: detection.raw };
       if (!observations.has(code)) observations.set(code, []);
       observations.get(code).push(point);
     }
@@ -119,7 +145,7 @@
       if (pointError) { result.reason = pointError; return result; }
       result.target = target;
       if (!READY_SOURCES.has(target.source)) { result.reason = target.source === 'sequence' ? 'Điểm suy ra theo dãy cần được kiểm tra và xác nhận thủ công.' : 'Nguồn tọa độ chưa được hỗ trợ để tự gắn.'; return result; }
-      if (target.source !== 'manual' && target.requiresReview) { result.reason = 'Điểm này cần được kiểm tra và xác nhận thủ công.'; return result; }
+      if (target.source !== 'manual' && target.requiresReview) { result.reason = (target.originalCode ? `OCR đọc ${target.originalCode}. ` : '') + (target.reviewReason || 'Điểm này cần được kiểm tra và xác nhận thủ công.'); return result; }
       if (target.confidence < threshold) { result.reason = 'Độ tin cậy thấp hơn ngưỡng tự gắn.'; return result; }
       result.status = 'ready';
       result.reason = 'Khớp chính xác mã căn và tọa độ hợp lệ.';
@@ -282,6 +308,6 @@
       item.target && item.target.x, item.target && item.target.y, item.target && item.target.confidence, item.target && item.target.source, item.reason])]);
   }
 
-  return Object.freeze({ normalizeCode, extractCodes, buildPlan, interpolateSequence, parseCoordinateFile,
+  return Object.freeze({ normalizeCode, extractCodes, reviewOcrCodes, buildPlan, interpolateSequence, parseCoordinateFile,
     validateCoordinateRecords, coordinatesToCsv, exportPlanCsv, escapeCsvCell, toCsv, parseCsv });
 });

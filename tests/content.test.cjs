@@ -409,6 +409,37 @@ test('health reporting OCR unavailable produces a human error before sending an 
   assert.equal(h.state.busy, false);
 });
 
+test('default scan preserves resolution and prefix suggestions cannot become ready automatically', async () => {
+  const h = harness();
+  h.info.rows = [{ code: 'VT39-11' }, { code: 'VT39-17' }];
+  mockRpc(h, { ocr: async () => ({ ok: true, value: {
+    detections: [detected('VI39-11', 100, 100), detected('YT39-17', 200, 200)], warnings: []
+  } }) });
+  await h.button('scan').onclick();
+  const request = h.messages.find(message => message.type === 'ocr');
+  assert.equal(request.body.profile, 'balanced');
+  assert.equal(request.body.angles, undefined);
+  assert.deepEqual(Array.from(h.state.plan, item => item.status), ['review', 'review']);
+  assert.deepEqual(Array.from(h.state.detections, item => item.originalCode), ['VI39-11', 'YT39-17']);
+  assert.match(h.button('recognized').textContent, /VT39-11.*VI39-11/);
+  h.button('confidence').value = '0.5';
+  h.button('confidence').onchange();
+  assert.equal(h.state.selected.size, 0);
+});
+
+test('an explicit prefix works without pending rows and quick scan remains available', async () => {
+  const h = harness();
+  h.info.rows = [];
+  h.button('codePrefixes').value = 'VT39';
+  h.button('angles').value = 'quick';
+  mockRpc(h, { ocr: async () => ({ ok: true, value: { detections: [detected('VI39-011')], warnings: [] } }) });
+  await h.button('scan').onclick();
+  assert.equal(h.messages.find(message => message.type === 'ocr').body.profile, 'quick');
+  assert.equal(h.state.detections[0].code, 'VT39-011');
+  assert.equal(h.state.detections[0].originalCode, 'VI39-011');
+  assert.equal(h.state.detections[0].requiresReview, true);
+});
+
 test('direct map labels bypass the OCR service and render their recognized codes', async () => {
   const h = harness();
   h.adapter.readLabels = async () => [detected('VNB.TP.1-00345', 100, 100, 'dom')];

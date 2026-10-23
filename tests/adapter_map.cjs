@@ -61,6 +61,20 @@ const server = http.createServer((request, response) => { response.setHeader('Co
     assert.equal((await page.evaluate(() => PingAdapter.inspectMap({ mapROI: { x: 1500, y: 900, width: 500, height: 500 } }))).mapRect, null);
     await page.setContent('<svg width="800" height="600" style="position:absolute;left:0;top:-150px"><rect width="800" height="600" fill="#ddd"/></svg>');
     assert.deepEqual((await page.evaluate(() => PingAdapter.inspectMap())).mapRect, { x: 0, y: 0, width: 800, height: 450 });
+    await page.setContent(`<svg data-ping-map width="800" height="600" style="position:absolute;left:0;top:0">
+      <rect width="800" height="600" fill="#ddd"/>
+      <text x="100" y="100" font-size="24">KĐ7-93</text>
+      <text x="100" y="200" font-size="24">ĐLSH-173</text>
+      <text x="100" y="300" font-size="24">ĐÔNG.ƯỚC-002</text>
+    </svg><aside data-ping-panel style="position:absolute;left:1000px;top:0;width:450px;height:600px">
+      <h2>Quản lý hotspot</h2><button>Chờ gắn</button><button>Đã gắn</button>
+      <div data-ping-row>KĐ7-93 <button>Gắn</button></div>
+      <div data-ping-row>ĐLSH-173 <button>Gắn</button></div>
+      <div data-ping-row>KD7-93 <button>Gắn</button></div>
+    </aside>`);
+    assert.deepEqual((await page.evaluate(() => PingAdapter.inspect())).rows.map(row => row.code), ['KĐ7-93', 'ĐLSH-173', 'KD7-93']);
+    assert.deepEqual((await page.evaluate(() => PingAdapter.readLabels())).map(item => item.code).sort(), ['KĐ7-93', 'ĐLSH-173', 'ĐÔNG.ƯỚC-002'].sort());
+    console.log('PASS Vietnamese adapter: pending rows and SVG labels preserve Đ and accented prefixes; D stays distinct.');
     assert.deepEqual(errors, []);
     console.log('PASS map adapter: no manager required; real VHUB-style stacked canvases/engine; ROI; clipped bounds; rotated SVG and data codes; hidden/offscreen/duplicate/assigned/UI/occluded labels rejected.');
   } finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }

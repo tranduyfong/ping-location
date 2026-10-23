@@ -81,6 +81,26 @@ const server = http.createServer((request, response) => {
     assert.equal(messages.filter(type => type === 'ocr').length, 2);
     console.log('PASS recognition UI: screen preview without manager/control, manual ROI drag/crop, OCR progress, local-to-screen coordinates, markers and cancellation.');
 
+    await page.goto(`http://127.0.0.1:${server.address().port}/demo/index.html`);
+    await page.evaluate(() => document.querySelector('[data-ping-panel]').remove());
+    await inject();
+    await page.locator('#ping-location-root #codePrefixes').fill('VT39');
+    await page.locator('#ping-location-root #scan').click();
+    await waitOcr();
+    assert.equal(pendingOcr.body.profile, 'balanced');
+    const prefixJob = pendingOcr; pendingOcr = null;
+    prefixJob.resolve({ ok: true, value: { detections: [
+      { code: 'VI39-11', x: 280, y: 250, confidence: .99 },
+      { code: 'YT39-17', x: 380, y: 350, confidence: .99 }
+    ], warnings: [] } });
+    await page.waitForFunction(() => !PingLocationApp.state.busy && PingLocationApp.state.detections.length === 2);
+    assert.deepEqual(await page.evaluate(() => PingLocationApp.state.detections.map(d => [d.code, d.originalCode, d.requiresReview])),
+      [['VT39-11', 'VI39-11', true], ['VT39-17', 'YT39-17', true]]);
+    assert.equal(await page.locator('#ping-location-root .marker.review').count(), 2);
+    assert.match(await page.locator('#ping-location-root #recognized').textContent(), /VT39-11.*VI39-11/);
+    assert.match(await page.locator('#ping-location-root #status').textContent(), /2 cần duyệt/);
+    console.log('PASS recognition UI: VI/YT prefix suggestions retain raw readings and render two review markers.');
+
     const ocrCount = messages.filter(type => type === 'ocr').length, healthCount = messages.filter(type => type === 'health').length;
     await page.goto(`http://127.0.0.1:${server.address().port}/demo/index.html`);
     await page.setContent('<svg data-ping-map width="900" height="700" style="position:absolute;left:400px;top:100px"><rect width="900" height="700" fill="#e9e3cc"/><text x="100" y="150" font-size="24">VX-02</text><text x="400" y="350" transform="rotate(30 400 350)" font-size="24">VN48-123</text></svg>');

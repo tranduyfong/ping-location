@@ -4,6 +4,18 @@ Tiện ích Chrome hỗ trợ thao tác **chọn căn trong Quản lý hotspot �
 
 [Xem giao diện minh họa](docs/ping-location-preview.png) · [Kết quả kiểm chứng và giới hạn OCR](docs/verification.md).
 
+[Kiểm thử ngày 23/10/2026 và phương án cải thiện mã căn/vị trí lô, dùng ảnh gốc trên 100 MB](docs/development-plan-2026-10-23.md).
+
+## Bản 0.4.0 — quét giữ độ nét và duyệt lỗi tiền tố
+
+Mặc định mới **Tự động (giữ độ nét)** quét từng vùng để giảm mất chữ nhỏ. Có ô **Tiền tố cần đối chiếu**; gợi ý như `VT39-11 ← VI39-11` luôn cần duyệt, không tự gắn bằng mã đoán. **Ngưỡng tự gắn** chỉ quyết định điểm nào đủ điều kiện chạy. Tải lại tiện ích rồi F5 trang sau khi cập nhật; backend cũng cần khởi động lại. [Kết quả đo, giới hạn và hướng dẫn thử](docs/ocr-coverage-2026-10-23.md).
+
+## Bản 0.3.0 — tiếng Việt và hai ảnh thực tế
+
+Đã bổ sung Đ và chữ có dấu cho đọc danh sách, đối chiếu mã và phản hồi; OCR dùng tiếng Việt + Anh với `latin_g2.pth`. Giữ `KĐ7-93` khác `KD7-93`, không tự bỏ dấu để gắn căn. [Kết quả trên hai ảnh, bộ mẫu và cách đo lại](docs/vietnamese-ocr-2026-10-23.md).
+
+Máy hiện tại đã có mô hình mới và dịch vụ đã được khởi động lại. Trong Chrome: **Tải lại** tiện ích rồi **F5** trang VHub. Máy khác cần chạy `python -m service --download-models` bằng môi trường dự án để tải mô hình Latin, sau đó khởi động lại dịch vụ.
+
 ## Cập nhật lên 0.2.0 — sửa quét OCR quá lâu
 
 Nếu đã cài bản trước: mở `chrome://extensions`, bấm **Tải lại** ở tiện ích Ping Location, rồi quay lại trang VHub và nhấn **F5**. Cần tải lại cả tiện ích và trang để thay mã đang chạy. Dịch vụ Python cũng cần khởi động lại sau khi thay mã; bản mới trả `version: 2` và `jobsApi: 1` trong `/health`. Trong phiên sửa này, dịch vụ cũ bị kẹt đã được thay bằng dịch vụ mới và mô hình đã được nạp.

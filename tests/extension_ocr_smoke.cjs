@@ -12,11 +12,14 @@ const packagePath = arg('--playwright-path') || process.env.PLAYWRIGHT_CORE_PATH
 const { chromium } = require(packagePath);
 const localChromium = process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'ms-playwright/chromium-1243/chrome-win64/chrome.exe');
 const executablePath = arg('--chrome-path') || process.env.CHROME_PATH || (localChromium && fs.existsSync(localChromium) ? localChromium : undefined);
+const vietnamese = process.argv.includes('--vietnamese');
+const expectedCodes = vietnamese ? ['KĐ7-93', 'ĐLSH-173'] : ['VN48-123', 'VX-002'];
 const fixture = '<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Ping Location — real OCR fixture</title></head><body style="margin:0;background:#eceee7"><div style="position:absolute;left:430px;top:65px;font:600 18px Segoe UI,Arial,sans-serif;color:#355345">BẢN ĐỒ THỬ NGHIỆM · DỮ LIỆU MÔ PHỎNG</div><div style="position:absolute;left:430px;top:100px;font:14px Segoe UI,Arial,sans-serif;color:#6e7f70">Ảnh canvas → tiện ích Chrome → dịch vụ OCR cục bộ → vị trí mã căn</div><canvas data-ping-map id="test-map" width="800" height="300" style="position:absolute;left:430px;top:150px;width:800px;height:300px"></canvas><script>const c=document.querySelector("canvas").getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,800,300);c.fillStyle="#e8dd9b";c.fillRect(25,25,350,140);c.fillStyle="#c4b9dc";c.fillRect(425,145,350,130);c.fillStyle="#111";c.font="bold 50px Arial";c.textAlign="center";c.textBaseline="middle";c.fillText("VN48-123",200,95);c.fillText("VX-002",600,210);<\/script></body></html>';
-const server = http.createServer((request, response) => { response.setHeader('Content-Type', 'text/html; charset=utf-8'); response.end(fixture); });
+const server = http.createServer((request, response) => { response.setHeader('Content-Type', 'text/html; charset=utf-8'); response.end(fixture.replaceAll('VN48-123', expectedCodes[0]).replaceAll('VX-002', expectedCodes[1])); });
 (async () => {
   const health = await (await fetch('http://127.0.0.1:8766/health', { signal: AbortSignal.timeout(10000) })).json();
   assert.equal(health.ocrReady, true, 'start ping-location/start.cmd and wait for OCR readiness');
+  if (vietnamese) assert.ok(health.languages?.includes('vi'), 'restart the service with Vietnamese recognition enabled');
   assert.equal(health.jobsApi, 1, 'current asynchronous jobs service is required');
   assert.equal(health.busy, false, 'wait for the current scan before running this test');
   const tempRoot = path.resolve(os.tmpdir()), profile = fs.mkdtempSync(path.join(tempRoot, 'ping-location-real-ocr-test-'));
@@ -58,8 +61,8 @@ const server = http.createServer((request, response) => { response.setHeader('Co
     const started = Date.now();
     await page.locator('#ping-location-root #scan').click();
     const completed = await until(s => !s.busy && !s.scanning && (s.detections.length || /hoàn tất OCR|error|lỗi|Không|không|phản hồi|sẵn sàng/i.test(s.status)), 90000);
-    assert.deepEqual(completed.detections.map(item => item.code).sort(), ['VN48-123', 'VX-002'], JSON.stringify(completed));
-    const expected = { 'VN48-123': { x: 630, y: 245 }, 'VX-002': { x: 1030, y: 360 } };
+    assert.deepEqual(completed.detections.map(item => item.code).sort(), expectedCodes.slice().sort(), JSON.stringify(completed));
+    const expected = { [expectedCodes[0]]: { x: 630, y: 245 }, [expectedCodes[1]]: { x: 1030, y: 360 } };
     for (const detection of completed.detections) { assert.equal(detection.source, 'ocr'); assert.ok(Math.hypot(detection.x - expected[detection.code].x, detection.y - expected[detection.code].y) < 35, `${detection.code}: incorrect screen point ${detection.x},${detection.y}`); }
     assert.equal(completed.markers, 2);
     const progress = await worker.evaluate(() => globalThis.__realOcrProgress);

@@ -31,6 +31,15 @@ class CodeTests(unittest.TestCase):
         self.assertEqual(extract_codes("vnb . tp . 1 – 003"), ["VNB.TP.1-003"])
         self.assertEqual(extract_codes("VN48-123\n276.4 m²"), ["VN48-123"])
 
+    def test_vietnamese_prefixes_keep_all_diacritics_and_code_boundaries(self):
+        import unicodedata
+        for code in ("KĐ7-93", "ĐLSH-173", "ĐÔNG.ƯỚC-002", "VM3-28"):
+            self.assertEqual(extract_codes(unicodedata.normalize("NFD", code.lower())), [code])
+        self.assertEqual(extract_codes("KĐ7-93 KD7-93 ĐLSH-173 DLSH-173"),
+                         ["KĐ7-93", "KD7-93", "ĐLSH-173", "DLSH-173"])
+        for raw in ("KĐ7-93Á", "foo_ĐLSH-173", "KĐ7-OO3"):
+            self.assertEqual(extract_codes(raw), [])
+
     def test_never_repairs_or_extracts_partial_codes(self):
         for raw in ("VX-OO2", "VX-02B", "VX-1234567", "276.4 m2", "VN48 123", "VX--02"):
             self.assertEqual(extract_codes(raw), [], raw)
@@ -70,6 +79,17 @@ class GeometryTests(unittest.TestCase):
 
 
 class ValidationTests(unittest.TestCase):
+    def test_english_weights_alone_do_not_mark_vietnamese_reader_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model_dir = Path(directory)
+            (model_dir / "craft_mlt_25k.pth").touch()
+            (model_dir / "english_g2.pth").touch()
+            health = OcrEngine(model_dir).health()
+            self.assertFalse(health["ocrReady"])
+            self.assertEqual(health["missingModels"], ["latin_g2.pth"])
+            self.assertEqual(health["languages"], ["vi", "en"])
+            self.assertEqual(health["recognitionModel"], "latin_g2")
+
     def test_bad_parameters(self):
         for payload in ({"angles": []}, {"angles": [float("nan")]}, {"angles": [True]},
                         {"scale": 4}, {"scale": False}, {"minConfidence": -1}, {"minConfidence": float("inf")}):

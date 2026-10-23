@@ -303,7 +303,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="Ping Location OCR, local CPU only")
     parser.add_argument("--port", type=int, default=8766)
-    parser.add_argument("--model-dir", help="Directory containing craft_mlt_25k.pth and english_g2.pth")
+    parser.add_argument("--model-dir", help="Directory containing craft_mlt_25k.pth and latin_g2.pth (Vietnamese + English)")
     parser.add_argument("--data-dir", type=Path, default=Path(__file__).resolve().parent / ".data")
     parser.add_argument("--download-models", action="store_true", help="Explicitly download OCR weights, then exit")
     args = parser.parse_args()

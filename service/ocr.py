@@ -19,9 +19,13 @@ MAX_IMAGE_PIXELS = 20_000_000
 MAX_IMAGE_DIMENSION = 8192
 MAX_WORK_PIXELS = 16_000_000
 DEFAULT_ANGLES = (0, 30, 60, 90, 120, 150)
-REQUIRED_MODELS = ("craft_mlt_25k.pth", "english_g2.pth")
+OCR_LANGUAGES = ("vi", "en")
+REQUIRED_MODELS = ("craft_mlt_25k.pth", "latin_g2.pth")
 DASHES = str.maketrans({c: "-" for c in "‐‑‒–—−﹣－"})
-CODE_PATTERN = re.compile(r"(?<![A-Z0-9.\-])([A-Z][A-Z0-9]*(?:\.[A-Z0-9]+)*\s*-\s*[0-9]{1,6})(?![A-Z0-9.\-])")
+# Unicode letters keep Vietnamese prefixes intact, including Đ. Unicode word
+# boundaries also prevent extracting LSH-173 from an unsupported ĐLSH-173.
+LETTER = r"[^\W\d_]"
+CODE_PATTERN = re.compile(rf"(?<![\w.\-])({LETTER}(?:{LETTER}|[0-9])*(?:\.(?:{LETTER}|[0-9])+)*\s*-\s*[0-9]{{1,6}})(?![\w.\-])")
 
 
 class InputError(ValueError):
@@ -59,9 +63,9 @@ def validate_parameters(payload: dict) -> tuple[list[float], float, float]:
             normalized.append(value)
     confidence = payload.get("minConfidence", 0.3)
     profile = payload.get("profile", "quick")
-    if not isinstance(profile, str) or profile not in {"quick", "thorough"}:
-        raise InputError("profile must be quick or thorough")
-    scale = payload.get("scale", 1 if profile == "quick" else 2)
+    if not isinstance(profile, str) or profile not in {"quick", "balanced", "thorough"}:
+        raise InputError("profile must be quick, balanced or thorough")
+    scale = payload.get("scale", {"quick": 1, "balanced": 1.5, "thorough": 2}[profile])
     for key, value, low, high in (("minConfidence", confidence, 0, 1), ("scale", scale, 1, 3)):
         if (not isinstance(value, (int, float)) or isinstance(value, bool)
                 or not math.isfinite(value) or not low <= value <= high):
@@ -183,6 +187,7 @@ def read_bounded(reader, bgr, canvas_size, check_cancel, on_batch):
     horizontal, free = reader.detect(bgr, min_size=5, text_threshold=0.6, low_text=0.3,
                                     canvas_size=canvas_size, mag_ratio=1, width_ths=0.35)
     check_cancel()
+    grey = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     groups = {}
     for box in horizontal[0]:
         left, right, top, bottom = map(float, box)
@@ -192,13 +197,16 @@ def read_bounded(reader, bgr, canvas_size, check_cancel, on_batch):
         bucket = math.ceil((width / height * 64) / 32) * 32
         groups.setdefault(bucket, {"horizontal": [], "free": []})["horizontal"].append(box)
     for box in free[0]:
-        xs, ys = zip(*box)
-        width, height = max(xs) - min(xs), max(ys) - min(ys)
+        # Measure the rectified word edges, not its axis-aligned envelope.
+        # A long word rotated 45 degrees has a nearly square envelope and was
+        # incorrectly discarded as a non-word before reaching recognition.
+        def edge(a, b):
+            return math.hypot(box[a][0] - box[b][0], box[a][1] - box[b][1])
+        width, height = max(edge(0, 1), edge(3, 2)), max(edge(0, 3), edge(1, 2))
         if width < 10 or height < 3 or not 1.2 <= width / height <= 20:
             continue
         bucket = math.ceil((width / height * 64) / 32) * 32
         groups.setdefault(bucket, {"horizontal": [], "free": []})["free"].append(box)
-    grey = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     batches = []
     for _, group in sorted(groups.items()):
         for kind in ("horizontal", "free"):
@@ -250,6 +258,8 @@ class OcrEngine:
                 "ocrReady": not missing and all(dependencies.values()) and not self._load_error,
                 "modelsAvailable": not missing, "dependencies": dependencies,
                 "modelDirectory": str(self.model_directory), "missingModels": missing,
+                "languages": list(OCR_LANGUAGES), "recognitionModel": "latin_g2",
+                "profiles": ["quick", "balanced", "thorough"],
                 "loaded": self._reader is not None, "loadError": self._load_error,
                 "downloadEnabled": False, "workerWarm": self._reader is not None,
                 "busy": self._lock.locked(), "lastScan": self._last_metrics}
@@ -267,7 +277,7 @@ class OcrEngine:
             user_directory = self.data_directory / "user-network"
             user_directory.mkdir(parents=True, exist_ok=True)
             self._reader = easyocr.Reader(
-                ["en"], gpu=False, model_storage_directory=str(self.model_directory),
+                list(OCR_LANGUAGES), gpu=False, model_storage_directory=str(self.model_directory),
                 user_network_directory=str(user_directory), download_enabled=download, verbose=False)
             self._load_error = None
             return self._reader
@@ -318,9 +328,12 @@ class OcrEngine:
         check_cancel()
         if adaptive:
             angles = adaptive_angles(image)
-            if profile == "quick":
-                angles = angles[:1]
-        tiles = image_tiles(width, height) if profile == "thorough" else [(0, 0, width, height)]
+            if profile in {"quick", "balanced"}:
+                # A dominant direction is only a hint: mixed-orientation maps
+                # still contain horizontal labels. Keep a bounded zero-angle
+                # fallback rather than rotating every label away from level.
+                angles = list(dict.fromkeys([0.0, angles[0]]))
+        tiles = image_tiles(width, height) if profile in {"balanced", "thorough"} else [(0, 0, width, height)]
         total = len(tiles) * len(angles)
         detections = []
         notices = []
@@ -363,7 +376,7 @@ class OcrEngine:
                            f"Reading text group {index + 1}/{batches} in pass {completed + 1}/{total}",
                            found=len(detections), batch=index + 1, batches=batches, angle=angle)
                 results = read_bounded(reader, cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR),
-                                       1280 if profile == "quick" else 2400, check_cancel, batch_progress)
+                                       {"quick": 1280, "balanced": 1600, "thorough": 2400}[profile], check_cancel, batch_progress)
             check_cancel()
             for box, raw, confidence in results:
                 if not math.isfinite(float(confidence)) or float(confidence) < threshold:

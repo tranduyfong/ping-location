@@ -2,8 +2,8 @@
 (() => {
   'use strict';
   const CHANNEL = 'PingLocation';
-  const CODE = /^[A-Z][A-Z0-9]*(?:[._][A-Z0-9]+)*-\d+[A-Z]?$/;
-  const CODE_IN_TEXT = /(?<![A-Z0-9._-])[A-Z][A-Z0-9]*(?:[._][A-Z0-9]+)*-\d+[A-Z]?(?![A-Z0-9._-])/g;
+  const CODE = /^\p{L}[\p{L}0-9]*(?:[._][\p{L}0-9]+)*-[0-9]+\p{L}?$/u;
+  const CODE_IN_TEXT = /(?<![\p{L}\p{M}\p{N}._-])\p{L}[\p{L}0-9]*(?:[._][\p{L}0-9]+)*-[0-9]+\p{L}?(?![\p{L}\p{M}\p{N}._-])/gu;
   const state = { lastArm: null, picker: null };
   const normalize = value => String(value ?? '').normalize('NFKC').toUpperCase().replace(/[‐‑‒–—−]/g, '-').replace(/\s+/g, '').trim();
   const cleanText = element => (element?.innerText || element?.textContent || element?.value || '').replace(/\s+/g, ' ').trim();
